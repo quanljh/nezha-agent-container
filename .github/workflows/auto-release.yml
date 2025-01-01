@@ -1,0 +1,49 @@
+name: Auto Release
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get latest release version
+        id: get_latest_release
+        run: |
+          LATEST_RELEASE=$(curl -s https://api.github.com/repos/nezhahq/agent/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "::set-output name=latest_release::$LATEST_RELEASE"
+
+      - name: Get latest image version
+        id: get_latest_image
+        run: |
+          LATEST_IMAGE=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://ghcr.io/v2/${{ github.repository }}/tags/list" | jq -r '.tags[]' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          echo "::set-output name=latest_image::$LATEST_IMAGE"
+
+      - name: Compare versions and build if necessary
+        if: steps.get_latest_release.outputs.latest_release != steps.get_latest_image.outputs.latest_image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ steps.get_latest_release.outputs.latest_release }}
+            ghcr.io/${{ github.repository }}:latest
+
+      - name: Log out from GitHub Container Registry
+        run: docker logout ghcr.io
