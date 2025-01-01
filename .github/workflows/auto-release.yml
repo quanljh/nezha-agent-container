@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
+    inputs:
+        force_push:
+          description: 'Force push the Docker image'
+          required: false
+          default: 'false'
 
 jobs:
   build-and-push:
@@ -38,7 +43,7 @@ jobs:
           echo "::set-output name=latest_image::$LATEST_IMAGE"
 
       - name: Compare versions and build if necessary
-        if: steps.get_latest_release.outputs.latest_release != steps.get_latest_image.outputs.latest_image
+        if: steps.get_latest_release.outputs.latest_release != steps.get_latest_image.outputs.latest_image || github.event.inputs.force_push == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
