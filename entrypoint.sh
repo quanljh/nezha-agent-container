@@ -23,4 +23,4 @@ uuid: ${UUID}
 EOF
 fi
 
-exec /nezha-agent -c "$CONFIG_FILE" 2>&1
+/nezha-agent -c "$CONFIG_FILE"

@@ -1,0 +1,14 @@
+services:
+  nezha-agent:
+    image: ghcr.io/quanljh/nezha-agent-container:latest
+    container_name: nezha-agent
+    restart: unless-stopped
+    network_mode: host
+    environment:
+        - CLIENT_SECRET=your_client_secret
+        - SERVER=your_server
+        - TLS=your_tls_setting
+    cap_add:
+        - NET_RAW
+    volumes:
+        - ./your_folder:/root/
